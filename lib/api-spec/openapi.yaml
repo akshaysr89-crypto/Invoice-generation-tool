@@ -1,0 +1,220 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Invoice Decision Tool API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: invoices
+    description: Invoice operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /invoices:
+    get:
+      operationId: listInvoices
+      tags: [invoices]
+      summary: List all invoices
+      description: Returns all invoices with their decisions
+      responses:
+        "200":
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Invoice"
+    post:
+      operationId: createInvoice
+      tags: [invoices]
+      summary: Submit an invoice for decision
+      description: Processes invoice through risk scoring and returns a decision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvoiceBody"
+      responses:
+        "201":
+          description: Invoice created with decision
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /invoices/{id}:
+    get:
+      operationId: getInvoice
+      tags: [invoices]
+      summary: Get a specific invoice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /invoices/stats:
+    get:
+      operationId: getInvoiceStats
+      tags: [invoices]
+      summary: Get invoice statistics
+      description: Returns aggregate stats for the admin dashboard
+      responses:
+        "200":
+          description: Invoice statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceStats"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    CreateInvoiceBody:
+      type: object
+      properties:
+        vendorName:
+          type: string
+        amount:
+          type: number
+        invoiceDate:
+          type: string
+        dueDate:
+          type: string
+        paymentTerms:
+          type: string
+        vendorHistory:
+          type: string
+          enum: [first-time, repeat, flagged]
+      required:
+        - vendorName
+        - amount
+        - invoiceDate
+        - dueDate
+        - paymentTerms
+        - vendorHistory
+
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+        vendorName:
+          type: string
+        amount:
+          type: number
+        invoiceDate:
+          type: string
+        dueDate:
+          type: string
+        paymentTerms:
+          type: string
+        vendorHistory:
+          type: string
+        riskLevel:
+          type: string
+          enum: [Low, Medium, High]
+        decision:
+          type: string
+          enum: [Approved, Rejected, Review Required]
+        riskFlags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - vendorName
+        - amount
+        - invoiceDate
+        - dueDate
+        - paymentTerms
+        - vendorHistory
+        - riskLevel
+        - decision
+        - riskFlags
+        - createdAt
+
+    InvoiceStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        approved:
+          type: integer
+        rejected:
+          type: integer
+        reviewRequired:
+          type: integer
+        totalAmount:
+          type: number
+        highRiskCount:
+          type: integer
+        mediumRiskCount:
+          type: integer
+        lowRiskCount:
+          type: integer
+      required:
+        - total
+        - approved
+        - rejected
+        - reviewRequired
+        - totalAmount
+        - highRiskCount
+        - mediumRiskCount
+        - lowRiskCount
